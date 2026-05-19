@@ -27,6 +27,7 @@ Repository = "https://github.com/giacomo-janson/sam2"
 sam2-ensemble-analysis = "sam.scripts.ensemble_analysis:main"
 sam2-ensemble-comparison = "sam.scripts.ensemble_comparison:main"
 sam2-generate-ensemble = "sam.scripts.generate_ensemble:main"
+sam2-download-weights = "sam.scripts.download_weights:main"
 
 
 [build-system]

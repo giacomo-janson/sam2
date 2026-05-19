@@ -8,7 +8,9 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_DOWNLOAD_PATH = "~/.sam2"
+DEFAULT_DIRNAME = "sam2"
+
+DEFAULT_DOWNLOAD_PATH = f"~/.{DEFAULT_DIRNAME}"
 
 DOWNLOAD_PATH_ENV_VAR_NAME = "SAM_WEIGHTS_PATH"
 
@@ -100,11 +102,15 @@ def download_weights(
     return flavor_dir
 
 
-def download_weights_main(directory: Path, flavor: str, force: bool = False) -> Path:
+def download_weights_main(directory: Path | None, flavor: str, force: bool = False) -> Path:
 
     if (env_value := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME, None)) is not None:
         _LOGGER.info(f"Value of environment variable '{DOWNLOAD_PATH_ENV_VAR_NAME}' set and is being used for download directory.")
         target_directory = Path(env_value).expanduser().resolve()
+
+    elif directory is None:
+        _LOGGER.info(f"Using default data directory: {DEFAULT_DOWNLOAD_PATH}")
+        target_directory = Path(DEFAULT_DOWNLOAD_PATH).expanduser().resolve()
 
     else:
         _LOGGER.info("Using directory from CLI argument for download directory.")

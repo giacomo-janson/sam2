@@ -1,11 +1,12 @@
 import os
+from pathlib import Path
 import json
 import requests
 import yaml
 import zipfile
 
 
-def read_cfg_file(cfg_fp):
+def read_cfg_file(cfg_fp: str):
     if cfg_fp.endswith(".json"):
         with open(cfg_fp, "r") as i_fh:
             model_cfg = json.load(i_fh)
@@ -16,6 +17,11 @@ def read_cfg_file(cfg_fp):
         raise TypeError(
             f"Invalid extension for configuration file: {cfg_fp}. Must be a"
             " json or yaml file.")
+
+    # expand path and resolve if there is a path in the weights
+    if "weights" in model_cfg and "path" in model_cfg["weights"] and model_cfg["weights"]["path"] is not None:
+        model_cfg["weights"]["path"] = str(Path(model_cfg["weights"]["path"]).expanduser().resolve())
+    
     return model_cfg
 
 def print_msg(msg, verbose=True, tag="verbose"):
@@ -45,7 +51,7 @@ def check_sam_weights(cfg_path: str, verbose: bool = True):
         with open(cfg_path, "w") as o_fh:
             yaml.dump(model_cfg, o_fh)
     else:
-        if not os.path.isdir(model_cfg["weights"]["path"]):
+        if not os.path.isdir(str(Path(model_cfg["weights"]["path"]).expanduser())):
             raise FileNotFoundError(
                 "Weights directory not found at: {}".format(
                     model_cfg["weights"]["path"]

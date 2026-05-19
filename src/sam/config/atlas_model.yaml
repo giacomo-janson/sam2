@@ -156,5 +156,4 @@ minimization:
 platform:
   device: cuda
 weights:
-  path: null
   version: atlas_1.0

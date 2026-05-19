@@ -40,23 +40,25 @@ We tested the package on Python 3.10, but it should work more recent versions to
 ### 2.1.1 - mdCATH-based aSAMt
 You can generate a structural ensemble of a protein via the `scripts/generate_ensemble.py` inference script. To run the mdCATH-based aSAMt model, the usage is:
 ```bash
-python scripts/generate_ensemble.py -c config/mdcath_model.yaml -i examples/input/4qbuA03.320.pdb -o protein -n 24 -b 8 -T 320 -d cuda
+python scripts/generate_ensemble.py -c src/sam/config/mdcath_model.yaml -i examples/input/4qbuA03.320.pdb -o protein -n 24 -b 8 -T 320 -d cuda
 ```
 Here is a description of the arguments:
-* `-c`: configuration file for aSAMt. Use the default ones provided in the `config` directory of the repository.
+* `-c`/`--config`: (optional) configuration for aSAMt. Either a built-in default or a path to a model config. The default ones provided in the `src/sam/config` directory of the repository. See the `--help` message for options and defaults.
 * `-i`: initial PDB file. This represent the initial
 * `-o`: output path. In this example, the command will save a series of output files named `protein.*`. The expected output is: (i) a DCD trajectory file storing the conformations you generated; (ii) a PDB file that you can use as topology for parsing the DCD file (this conformation is simply the first snapshot of the trajectory file).
 * `-n`: number of conformations to generate. In this example we set it to 24, but depending on the application you may need more.
 * `-b`: batch size used sampling.
 * `-T`: simulation temperature (in units of Kelvin) at which to generate an ensemble.
 * `-d`: PyTorch device for the aSAMt models. If you want to generate ensembles with large number of conformations, we recommend to use GPU support, via the `cuda` value here.
+* `--data_dir` : The data directory path. This is the location weights are expected or will be downloaded to.
+* `--no_download` : By default this script will download the weight versions requested in the model config. This disables download if the weights are not already in the datadir folder.
 
 There are also other options that you can tweak. Use the `--help` flag to get the full list. Using a GPU, generating 250 conformations should not more than a few minutes.
 
 ### 2.1.2 - ATLAS-based aSAMc
 In case you want to use the ATLAS-based aSAMc model, the command is:
 ```bash
-python scripts/generate_ensemble.py -c config/atlas_model.yaml -i examples/input/6h49_A.pdb -o protein -n 250 -b 8 -d cuda
+python scripts/generate_ensemble.py -c src/sam/config/atlas_model.yaml -i examples/input/6h49_A.pdb -o protein -n 250 -b 8 -d cuda
 ```
 
 Note that this model is not conditioned on temperature, therefore any temperature input will be ignored.

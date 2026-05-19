@@ -35,6 +35,16 @@ def resolve_weights_url(flavor: str) -> (str, str):
 
     return url, filename
 
+def has_flavor(
+        target_path: Path,
+        flavor: str,
+) -> bool:
+    _target_dir = target_path.expanduser().resolve()
+    weights_dir = _target_dir / WEIGHTS_SUBDIR_NAME
+    flavor_dir = weights_dir / flavor
+
+    return flavor_dir.exists()
+
 def download_weights(
         target_path: Path,
         flavor: str,
@@ -42,11 +52,10 @@ def download_weights(
 ) -> Path:
 
     _target_dir = target_path.expanduser().resolve()
-
     weights_dir = _target_dir / WEIGHTS_SUBDIR_NAME
-
     flavor_dir = weights_dir / flavor
-    if flavor_dir.exists():
+
+    if has_flavor(_target_dir, flavor):
         _LOGGER.info(f"The weights flavor directory already exists: {flavor_dir}")
 
         if not force:

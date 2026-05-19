@@ -1,7 +1,7 @@
 """
 Module with mostly code for quickly using the SAM model at inference time.
 """
-
+from pathlib import Path
 import os
 import time
 import pathlib
@@ -32,11 +32,17 @@ class SAM:
     Wrapper class for using the SAM models at inference time.
     """
 
-    def __init__(self,
+    def __init__(
+        self,
         config_fp: str,
+        weights_dir: Path,
         device: str = "cpu",
         load_encoder: bool = False,
-        verbose: bool = False):
+        verbose: bool = False
+    ):
+
+        _weights_dir = weights_dir.expanduser().resolve()
+        
 
         self._check_sam()
 
@@ -89,7 +95,8 @@ class SAM:
 
         # Network.
         _gen_weights_fp = os.path.join(
-            self.model_cfg["weights"]["path"], "nn.gen.pt"
+            _weights_dir,
+            "nn.gen.pt"
         )
         eps_fp = _gen_weights_fp  # self._get_weights_path(_gen_weights_fp)
         self._print(f"- Loading epsilon network from: {eps_fp}.")
@@ -103,7 +110,7 @@ class SAM:
 
         # Load the standard scaler for the encodings, if necessary.
         _enc_scaler_fp = os.path.join(
-            self.model_cfg["weights"]["path"], "enc_std_scaler.pt"
+            _weights_dir, "enc_std_scaler.pt"
         )
         if self.model_cfg["generative_stack"]["use_enc_scaler"]:
             enc_scaler_fp = _enc_scaler_fp  # self._get_weights_path(_enc_scaler_fp)
@@ -127,7 +134,7 @@ class SAM:
 
         # Always load the decoder.
         _dec_weights_fp = os.path.join(
-            self.model_cfg["weights"]["path"], "nn.dec.pt"
+            _weights_dir, "nn.dec.pt"
         )
         dec_fp = _dec_weights_fp  # self._get_weights_path(_dec_weights_fp)
         self._print(f"- Loading decoder network from: {dec_fp}.")

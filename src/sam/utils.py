@@ -6,7 +6,7 @@ import yaml
 import zipfile
 
 
-def read_cfg_file(cfg_fp):
+def read_cfg_file(cfg_fp: str):
     if cfg_fp.endswith(".json"):
         with open(cfg_fp, "r") as i_fh:
             model_cfg = json.load(i_fh)

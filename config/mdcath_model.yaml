@@ -152,5 +152,4 @@ minimization:
 platform:
   device: cuda
 weights:
-  path: null
   version: mdcath_1.0

@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 import os
 from typing import Literal
+import importlib.resources
 import textwrap
 import sys
 import argparse
@@ -20,6 +21,7 @@ from sam.utils import read_cfg_file, print_msg, check_sam_weights
 from sam.data.topology import get_seq_from_top
 from sam.minimizer.runner import Minimizer
 from sam.weights import has_flavor, download_weights_main, WEIGHTS_FLAVORS, DEFAULT_FLAVOR, DEFAULT_DOWNLOAD_PATH, DOWNLOAD_PATH_ENV_VAR_NAME, WEIGHTS_SUBDIR_NAME
+from sam.config import MODEL_CONFIGS, DEFAULT_MODEL_CONFIG, MODEL_FILENAMES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,16 +30,22 @@ help_string = textwrap.dedent(
 
     The `--data-dir` flag can be overridden with the
     `{DOWNLOAD_PATH_ENV_VAR_NAME}` environment variable.
+
+    For model configurations you can choose from the built-in defaults
+    or provide your own .json or .yaml file with the configuration
+    parameters, see the `--config` argument. For built-in model
+    configs choose from {MODEL_CONFIGS}. Default is
+    {DEFAULT_MODEL_CONFIG}.
     
     """
 )
 
 def generate_ensemble(
         init: Path,
-        config_fp: Path,
         out_path: Path,
         data_dir: Path,
         *,
+        config: Path | str = "atlas",
         no_download: bool = False,
         out_fmt: Literal["xtc", "dcd"] = "dcd",
         n_samples: int = 250,
@@ -58,15 +66,31 @@ def generate_ensemble(
 
     _data_dir = data_dir.expanduser().resolve()
     init = init.expanduser().resolve()
-    config_fp = config_fp.expanduser().resolve()
     out_path = out_path.expanduser().resolve()
 
+    if isinstance(config, str) and config not in MODEL_CONFIGS:
+        raise ValueError(
+            f"Non-path config requested '{config}' but is not a valid built-in. Choose one of: {MODEL_CONFIGS}"
+        )
+    elif isinstance(config, str):
+
+        # resolve built-in config
+        configs_dir = importlib.resources.files("sam.config")
+        model_config_path = configs_dir / MODEL_FILENAMES[config]
+
+    elif isinstance(config, Path):
+        model_config_path = config.expanduser().resolve()
+
+    else:
+        raise TypeError(f"Unknown 'config' type: {type(config)}")
+
+    model_cfg = read_cfg_file(str(model_config_path))
+    
     timing = {"all": time.time(), "sample": None}
 
     if not os.path.isfile(init):
         raise FileNotFoundError(init)
 
-    model_cfg = read_cfg_file(str(config_fp))
 
     # check if the weights for the flavor are available and download
     # if requested
@@ -112,7 +136,7 @@ def generate_ensemble(
         raise KeyError(model_cfg["generative_stack"]["data_type"])
 
     model = model_cls(
-        config_fp=str(config_fp),
+        config_fp=str(model_config_path),
         weights_dir=weights_dir,
         device=device,
         verbose=not quiet
@@ -209,12 +233,6 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        '-c', '--config_fp',
-        type=str,
-        required=True,
-        help='YAML or JSON configuration file for a SAM generative model.'
-    )
-    parser.add_argument(
         '-i',
         '--init',
         type=str,
@@ -228,6 +246,13 @@ def main():
         required=True,
         help='Output path. File extensions for different file types will be'
         ' automatically added.'
+    )
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        required=False,
+        default=DEFAULT_MODEL_CONFIG,
+        help=f"Model config. Either a string for a built-in config or a path to a YAML or JSON configuration file. Choose from {MODEL_CONFIGS} (Default={DEFAULT_MODEL_CONFIG})"
     )
     parser.add_argument(
         '-u',
@@ -291,7 +316,7 @@ def main():
     args = parser.parse_args()
 
     generate_ensemble(
-        config_fp=Path(args.config_fp).expanduser().resolve(),
+        config=args.config,
         init=Path(args.init).expanduser().resolve(),
         out_path=Path(args.out_path).expanduser().resolve(),
         data_dir=Path(args.data_dir).expanduser().resolve(),

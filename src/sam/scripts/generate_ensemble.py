@@ -117,7 +117,7 @@ def generate_ensemble(
         )
 
     _LOGGER.info("Loading initial conformation.")
-    tem_traj = mdtraj.load(init, top=init)
+    tem_traj = mdtraj.load(str(init))
     tbm_data = {"xyz": tem_traj.xyz}
     if model_cfg["generative_stack"]["data_type"] == "aa_protein":
         tbm_data["topology"] = tem_traj.topology

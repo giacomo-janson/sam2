@@ -38,22 +38,27 @@ def get_num_params(net):
     return num_params
 
 
-def get_device(name, load=False):
-    if name == "cuda":
+def get_device(name, load=False) -> (torch.device, dict[str,torch.device]):
+
+    if "cuda" in name:
         if torch.cuda.is_available():
-            device = torch.device("cuda")
-            map_location_args = {}
+            device = torch.device(name)
+            map_location_args = {"map_location" : device}
         else:
-            raise OSError("CUDA is not available for PyTorch.")
+            raise OSError(f"No available device for device spec '{name}'.")
+
     elif name == "cpu":
         device = torch.device("cpu")
-        map_location_args = {"map_location": torch.device('cpu')}
+        map_location_args = {"map_location": device}
+
     else:
-        raise KeyError(name)
+        raise ValueError(f"No device for spec '{name}'")
+
+
     if load:
         return device, map_location_args
     else:
-        return device
+        return device, {}
 
 
 def scatter(src, index, dim_size=None, reduce="sum"):

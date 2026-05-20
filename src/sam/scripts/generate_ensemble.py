@@ -43,9 +43,10 @@ help_string = textwrap.dedent(
 def generate_ensemble(
         init: Path,
         out_path: Path,
-        data_dir: Path,
         *,
-        config: Path | str = "atlas",
+        data_dir: Path | None = None,
+        config_path: Path | None = None,
+        config: str | None = "atlas",
         no_download: bool = False,
         out_fmt: Literal["xtc", "dcd"] = "dcd",
         n_samples: int = 250,
@@ -63,26 +64,23 @@ def generate_ensemble(
     #---------------
     # Check input. -
     #---------------
-
-    _data_dir = data_dir.expanduser().resolve()
     init = init.expanduser().resolve()
     out_path = out_path.expanduser().resolve()
 
-    if isinstance(config, str) and config not in MODEL_CONFIGS:
+    if config_path is not None and config is not None:
+        raise ValueError("Cannot specify both config_path and config")
+
+    elif config_path is not None:
+        model_config_path = config_path.expanduser().resolve()
+
+    elif config is not None and config not in MODEL_CONFIGS:
         raise ValueError(
             f"Non-path config requested '{config}' but is not a valid built-in. Choose one of: {MODEL_CONFIGS}"
         )
-    elif isinstance(config, str):
-
+    elif config is not None:
         # resolve built-in config
         configs_dir = importlib.resources.files("sam.config")
         model_config_path = configs_dir / MODEL_FILENAMES[config]
-
-    elif isinstance(config, Path):
-        model_config_path = config.expanduser().resolve()
-
-    else:
-        raise TypeError(f"Unknown 'config' type: {type(config)}")
 
     model_cfg = read_cfg_file(str(model_config_path))
     
@@ -101,7 +99,18 @@ def generate_ensemble(
 
     else:
         flavor = model_cfg["weights"]["version"]
-    
+
+    if data_dir is not None:
+        _data_dir = data_dir.expanduser().resolve()
+
+    else:
+        # resolve the directory to use, either the environment
+        # variable or the default
+        if env_val := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME, None) is not None:
+            _data_dir = Path(env_val).expanduser().resolve()
+        else:
+            _data_dir = Path(DEFAULT_DOWNLOAD_PATH).expanduser().resolve()
+
     if has_flavor(_data_dir, flavor):
         _LOGGER.info(f"Weights for flavor {flavor} already present in data dir.")
         weights_dir = _data_dir / WEIGHTS_SUBDIR_NAME / flavor
@@ -248,11 +257,22 @@ def main():
         ' automatically added.'
     )
     parser.add_argument(
-        '-c', '--config',
+        '--config',
         type=str,
         required=False,
-        default=DEFAULT_MODEL_CONFIG,
-        help=f"Model config. Either a string for a built-in config or a path to a YAML or JSON configuration file. Choose from {MODEL_CONFIGS} (Default={DEFAULT_MODEL_CONFIG})"
+        default=None,
+        help=(
+            f"Model config. String for a built-in config."
+            f"Choose from {MODEL_CONFIGS} (Default={DEFAULT_MODEL_CONFIG})"
+            "Incompatible with `--config_path`."
+        )
+    )
+    parser.add_argument(
+        '-c', '--config_path',
+        type=str,
+        required=False,
+        default=None,
+        help="Path to a config to override using built-in default. Incompatible with `--config`."
     )
     parser.add_argument(
         '-u',
@@ -290,8 +310,11 @@ def main():
 
     parser.add_argument(
         '--data_dir',
-        default=DEFAULT_DOWNLOAD_PATH,
-        help=f"Directory with model data, i.e. model weights. (Default={DEFAULT_DOWNLOAD_PATH})"
+        default=None,
+        help=(
+            "Directory with model data, i.e. model weights."
+            "See description for default resolution process if not provided."
+        ),
     )
 
     parser.add_argument(
@@ -317,6 +340,7 @@ def main():
 
     generate_ensemble(
         config=args.config,
+        config_path=args.config_path,
         init=Path(args.init).expanduser().resolve(),
         out_path=Path(args.out_path).expanduser().resolve(),
         data_dir=Path(args.data_dir).expanduser().resolve(),

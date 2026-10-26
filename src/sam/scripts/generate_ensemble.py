@@ -95,7 +95,7 @@ def generate_ensemble(
 
     if model_cfg["weights"]["version"] not in WEIGHTS_FLAVORS:
         raise ValueError(
-            f"Invalid 'weights.version' field in model config '{model_cfg["weights"]["version"]}', choose from {WEIGHTS_FLAVORS}")
+            f"Invalid 'weights.version' field in model config '{model_cfg['weights']['version']}', choose from {WEIGHTS_FLAVORS}")
 
     else:
         flavor = model_cfg["weights"]["version"]
@@ -106,7 +106,7 @@ def generate_ensemble(
     else:
         # resolve the directory to use, either the environment
         # variable or the default
-        if env_val := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME, None) is not None:
+        if (env_val := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME)) is not None:
             _data_dir = Path(env_val).expanduser().resolve()
         else:
             _data_dir = Path(DEFAULT_DOWNLOAD_PATH).expanduser().resolve()
@@ -123,7 +123,7 @@ def generate_ensemble(
         weights_dir = download_weights_main(
             _data_dir,
             flavor,
-        )
+        ) / WEIGHTS_SUBDIR_NAME / flavor
 
     _LOGGER.info("Loading initial conformation.")
     tem_traj = mdtraj.load(str(init))
@@ -212,7 +212,7 @@ def generate_ensemble(
         )
         min_traj.save(min_traj_path)
         min_top_path = f"{out_path}{min_out_str}.top.pdb"
-        _LOGGER.infox(
+        _LOGGER.info(
             f"- Saving a topology PDB file to: {min_top_path}",
         )
         min_traj[0].save(min_top_path)
@@ -343,7 +343,10 @@ def main():
         config_path=args.config_path,
         init=Path(args.init).expanduser().resolve(),
         out_path=Path(args.out_path).expanduser().resolve(),
-        data_dir=Path(args.data_dir).expanduser().resolve(),
+        data_dir=(
+            Path(args.data_dir).expanduser().resolve()
+            if args.data_dir is not None else None
+        ),
         no_download=args.no_download,
         out_fmt=args.out_fmt,
         n_samples=args.n_samples,

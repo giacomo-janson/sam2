@@ -28,12 +28,13 @@ _LOGGER = logging.getLogger(__name__)
 help_string = textwrap.dedent(
     f"""Generate SAM conformational ensemble.
 
-    The `--data-dir` flag can be overridden with the
-    `{DOWNLOAD_PATH_ENV_VAR_NAME}` environment variable.
+    The data directory is optional and defaults to `{DEFAULT_DOWNLOAD_PATH}`.
+    The `{DOWNLOAD_PATH_ENV_VAR_NAME}` environment variable takes precedence
+    over `--data_dir`. Weights are stored under `weights/<flavor>`.
 
     For model configurations you can choose from the built-in defaults
     or provide your own .json or .yaml file with the configuration
-    parameters, see the `--config` argument. For built-in model
+    parameters, see the `--config_path` argument. For built-in model
     configs choose from {MODEL_CONFIGS}. Default is
     {DEFAULT_MODEL_CONFIG}.
     
@@ -46,7 +47,7 @@ def generate_ensemble(
         *,
         data_dir: Path | None = None,
         config_path: Path | None = None,
-        config: str | None = "atlas",
+        config: str | None = None,
         no_download: bool = False,
         out_fmt: Literal["xtc", "dcd"] = "dcd",
         n_samples: int = 250,
@@ -66,6 +67,9 @@ def generate_ensemble(
     #---------------
     init = init.expanduser().resolve()
     out_path = out_path.expanduser().resolve()
+
+    if config is None and config_path is None:
+        config = DEFAULT_MODEL_CONFIG
 
     if config_path is not None and config is not None:
         raise ValueError("Cannot specify both config_path and config")
@@ -95,21 +99,17 @@ def generate_ensemble(
 
     if model_cfg["weights"]["version"] not in WEIGHTS_FLAVORS:
         raise ValueError(
-            f"Invalid 'weights.version' field in model config '{model_cfg["weights"]["version"]}', choose from {WEIGHTS_FLAVORS}")
+            f"Invalid 'weights.version' field in model config '{model_cfg['weights']['version']}', choose from {WEIGHTS_FLAVORS}")
 
     else:
         flavor = model_cfg["weights"]["version"]
 
-    if data_dir is not None:
+    if (env_val := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME)) is not None:
+        _data_dir = Path(env_val).expanduser().resolve()
+    elif data_dir is not None:
         _data_dir = data_dir.expanduser().resolve()
-
     else:
-        # resolve the directory to use, either the environment
-        # variable or the default
-        if env_val := os.getenv(DOWNLOAD_PATH_ENV_VAR_NAME, None) is not None:
-            _data_dir = Path(env_val).expanduser().resolve()
-        else:
-            _data_dir = Path(DEFAULT_DOWNLOAD_PATH).expanduser().resolve()
+        _data_dir = Path(DEFAULT_DOWNLOAD_PATH).expanduser().resolve()
 
     if has_flavor(_data_dir, flavor):
         _LOGGER.info(f"Weights for flavor {flavor} already present in data dir.")
@@ -123,7 +123,7 @@ def generate_ensemble(
         weights_dir = download_weights_main(
             _data_dir,
             flavor,
-        )
+        ) / WEIGHTS_SUBDIR_NAME / flavor
 
     _LOGGER.info("Loading initial conformation.")
     tem_traj = mdtraj.load(str(init))
@@ -212,7 +212,7 @@ def generate_ensemble(
         )
         min_traj.save(min_traj_path)
         min_top_path = f"{out_path}{min_out_str}.top.pdb"
-        _LOGGER.infox(
+        _LOGGER.info(
             f"- Saving a topology PDB file to: {min_top_path}",
         )
         min_traj[0].save(min_top_path)
@@ -269,7 +269,7 @@ def main():
     )
     parser.add_argument(
         '-c', '--config_path',
-        type=str,
+        type=Path,
         required=False,
         default=None,
         help="Path to a config to override using built-in default. Incompatible with `--config`."
@@ -306,8 +306,6 @@ def main():
     )
     parser.add_argument('-T', '--temperature', type=float,
         help='temperature (optional, only for temperature-based models)')
-
-
     parser.add_argument(
         '--data_dir',
         default=None,
@@ -316,7 +314,6 @@ def main():
             "See description for default resolution process if not provided."
         ),
     )
-
     parser.add_argument(
         '--no_download',
         action='store_true',
@@ -343,7 +340,10 @@ def main():
         config_path=args.config_path,
         init=Path(args.init).expanduser().resolve(),
         out_path=Path(args.out_path).expanduser().resolve(),
-        data_dir=Path(args.data_dir).expanduser().resolve(),
+        data_dir=(
+            Path(args.data_dir).expanduser().resolve()
+            if args.data_dir is not None else None
+        ),
         no_download=args.no_download,
         out_fmt=args.out_fmt,
         n_samples=args.n_samples,
@@ -357,7 +357,6 @@ def main():
         ca=args.ca,
         track_time=args.time,
     )
-
 
 
 if __name__ == "__main__":

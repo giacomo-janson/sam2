@@ -38,19 +38,19 @@ We tested the package on Python 3.10, but it should work more recent versions to
 ## 2.1 - Running locally
 
 ### 2.1.1 - mdCATH-based aSAMt
-You can generate a structural ensemble of a protein via the `scripts/generate_ensemble.py` inference script. To run the mdCATH-based aSAMt model, the usage is:
+You can generate a structural ensemble of a protein via the `sam2-generate-ensemble` inference script. To run the mdCATH-based aSAMt model, the usage is:
 ```bash
-python scripts/generate_ensemble.py -c src/sam/config/mdcath_model.yaml -i examples/input/4qbuA03.320.pdb -o protein -n 24 -b 8 -T 320 -d cuda
+sam2-generate-ensemble --config mdcath -i examples/input/4qbuA03.320.pdb -o protein -n 24 -b 8 -T 320 -d cuda
 ```
 Here is a description of the arguments:
-* `-c`/`--config`: (optional) configuration for aSAMt. Either a built-in default or a path to a model config. The default ones provided in the `src/sam/config` directory of the repository. See the `--help` message for options and defaults.
+* `-c`/`--config`: (optional) configuration for aSAMt. Either a built-in default (`mdcath` or `atlas`) or a path to a model config. The default ones provided in the `src/sam/config` directory of the repository. See the `--help` message for options and defaults.
 * `-i`: initial PDB file. This represent the initial
 * `-o`: output path. In this example, the command will save a series of output files named `protein.*`. The expected output is: (i) a DCD trajectory file storing the conformations you generated; (ii) a PDB file that you can use as topology for parsing the DCD file (this conformation is simply the first snapshot of the trajectory file).
 * `-n`: number of conformations to generate. In this example we set it to 24, but depending on the application you may need more.
 * `-b`: batch size used sampling.
 * `-T`: simulation temperature (in units of Kelvin) at which to generate an ensemble.
 * `-d`: PyTorch device for the aSAMt models. If you want to generate ensembles with large number of conformations, we recommend to use GPU support, via the `cuda` value here.
-* `--data_dir` : The data directory path. This is the location weights are expected or will be downloaded to.
+* `--data_dir` : (optional) the data directory path. This is the location weights are expected or will be downloaded to. Defaults to `~/.sam2`, with weights stored under its `weights/` subdirectory.
 * `--no_download` : By default this script will download the weight versions requested in the model config. This disables download if the weights are not already in the datadir folder.
 
 There are also other options that you can tweak. Use the `--help` flag to get the full list. Using a GPU, generating 250 conformations should not more than a few minutes.
@@ -58,13 +58,13 @@ There are also other options that you can tweak. Use the `--help` flag to get th
 ### 2.1.2 - ATLAS-based aSAMc
 In case you want to use the ATLAS-based aSAMc model, the command is:
 ```bash
-python scripts/generate_ensemble.py -c src/sam/config/atlas_model.yaml -i examples/input/6h49_A.pdb -o protein -n 250 -b 8 -d cuda
+sam2-generate-ensemble --config atlas -i examples/input/6h49_A.pdb -o protein -n 250 -b 8 -d cuda
 ```
 
 Note that this model is not conditioned on temperature, therefore any temperature input will be ignored.
 
 ### 2.1.3 - Automatic download of aSAM weights
-The first time you will use the `scripts/generate_ensemble.py` script, it will automatically download aSAM weights from a [GitHub release](https://github.com/giacomo-janson/sam2/releases/tag/data-1.0). The files are pretty large (~ 1 GB for the ATLAS and mdCATH models each), so make sure to have enough storage space. By default, the files will be placed in the `$HOME/.sam2/weights` directory, which will be automatically created. If you want to change their download location, change the `SAM_WEIGHTS_PATH` environmental variable before running the script.
+The first time you will use the `sam2-generate-ensemble` script, it will automatically download aSAM weights from a [GitHub release](https://github.com/giacomo-janson/sam2/releases/tag/data-1.0). The files are pretty large (~ 1 GB for the ATLAS and mdCATH models each), so make sure to have enough storage space. By default, the files will be placed in the `$HOME/.sam2/weights` directory, which will be automatically created. If you want to change their download location, change the `SAM_WEIGHTS_PATH` environmental variable before running the script.
 
 ## 2.2 - Notes on aSAM input
 📝 **Input PDB structure**: The only required input of this aSAM version is a PDB file. You can only provide PDB files with the following characteristics:
@@ -98,12 +98,12 @@ the commands below assume that you are analyzing the ensembles downloaded in thi
 
 To analyze a single ensemble and compute its folded state fraction (FSF), secondary structure element preservation (SSEP) and average initRMSD use:
 ```bash
-python scripts/ensemble_analysis.py --native_pdb examples/ensembles/4qbuA03.init.pdb --ensemble_top examples/ensembles/4qbuA03.sam.pdb --ensemble_traj examples/ensembles/4qbuA03.320.sam.xtc
+sam2-ensemble-analysis --native_pdb examples/ensembles/4qbuA03.init.pdb --ensemble_top examples/ensembles/4qbuA03.sam.pdb --ensemble_traj examples/ensembles/4qbuA03.320.sam.xtc
 ```
 
 To compare two ensembles of the same protein via the comparison scores that we used in the aSAM paper, use:
 ```bash
-python scripts/ensemble_comparison.py --ref_top examples/ensembles/6h49_A.md.pdb --ref_traj examples/ensembles/6h49_A.md.xtc --hat_top examples/ensembles/6h49_A.sam.pdb --hat_traj examples/ensembles/6h49_A.sam.xtc --init_pdb examples/input/6h49_A.pdb
+sam2-ensemble-comparison --ref_top examples/ensembles/6h49_A.md.pdb --ref_traj examples/ensembles/6h49_A.md.xtc --hat_top examples/ensembles/6h49_A.sam.pdb --hat_traj examples/ensembles/6h49_A.sam.xtc --init_pdb examples/input/6h49_A.pdb
 ```
 Note: the script will not compute WASCO scores. If you want to compute them, you need to manually use the [WASCO package](https://gitlab.laas.fr/moma/methods/analysis/WASCO). To compute the WASCO scores reported in the aSAM paper, we used code based on the `comparison_tool.ipynb` notebook in that package.
 
@@ -118,7 +118,7 @@ If you are looking for idpSAM, a predecessor of aSAM trained on Cα atoms of imp
 * 7/3/2025: initial release.
 
 # 7 - Citation
-Janson G., Jussupow A. & Feig M. *Deep generative modeling of temperature-dependent structural ensembles of proteins.* Preprint at [https://www.biorxiv.org/content/10.1101/2025.03.09.642148v1](https://www.biorxiv.org/content/10.1101/2025.03.09.642148v1) (2025).
+Janson G., Jussupow A. & Feig M. *Deep generative modeling of temperature-dependent structural ensembles of proteins.* Commun Chem 8, 354 (2025). [https://doi.org/10.1038/s42004-025-01737-2](https://doi.org/10.1038/s42004-025-01737-2)
 
 # 8 - Contacts
 Feig Lab at [Michigan State University](https://msu.edu), [Department of Biochemistry and Molecular Biology](https://bmb.natsci.msu.edu)

@@ -98,12 +98,12 @@ the commands below assume that you are analyzing the ensembles downloaded in thi
 
 To analyze a single ensemble and compute its folded state fraction (FSF), secondary structure element preservation (SSEP) and average initRMSD use:
 ```bash
-python sam2-ensemble-analysis --native_pdb examples/ensembles/4qbuA03.init.pdb --ensemble_top examples/ensembles/4qbuA03.sam.pdb --ensemble_traj examples/ensembles/4qbuA03.320.sam.xtc
+sam2-ensemble-analysis --native_pdb examples/ensembles/4qbuA03.init.pdb --ensemble_top examples/ensembles/4qbuA03.sam.pdb --ensemble_traj examples/ensembles/4qbuA03.320.sam.xtc
 ```
 
 To compare two ensembles of the same protein via the comparison scores that we used in the aSAM paper, use:
 ```bash
-python sam2-ensemble-comparison --ref_top examples/ensembles/6h49_A.md.pdb --ref_traj examples/ensembles/6h49_A.md.xtc --hat_top examples/ensembles/6h49_A.sam.pdb --hat_traj examples/ensembles/6h49_A.sam.xtc --init_pdb examples/input/6h49_A.pdb
+sam2-ensemble-comparison --ref_top examples/ensembles/6h49_A.md.pdb --ref_traj examples/ensembles/6h49_A.md.xtc --hat_top examples/ensembles/6h49_A.sam.pdb --hat_traj examples/ensembles/6h49_A.sam.xtc --init_pdb examples/input/6h49_A.pdb
 ```
 Note: the script will not compute WASCO scores. If you want to compute them, you need to manually use the [WASCO package](https://gitlab.laas.fr/moma/methods/analysis/WASCO). To compute the WASCO scores reported in the aSAM paper, we used code based on the `comparison_tool.ipynb` notebook in that package.
 
@@ -118,7 +118,7 @@ If you are looking for idpSAM, a predecessor of aSAM trained on Cα atoms of imp
 * 7/3/2025: initial release.
 
 # 7 - Citation
-Janson G., Jussupow A. & Feig M. *Deep generative modeling of temperature-dependent structural ensembles of proteins.* Preprint at [https://www.biorxiv.org/content/10.1101/2025.03.09.642148v1](https://www.biorxiv.org/content/10.1101/2025.03.09.642148v1) (2025).
+Janson G., Jussupow A. & Feig M. *Deep generative modeling of temperature-dependent structural ensembles of proteins.* Commun Chem 8, 354 (2025). [https://doi.org/10.1038/s42004-025-01737-2](https://doi.org/10.1038/s42004-025-01737-2)
 
 # 8 - Contacts
 Feig Lab at [Michigan State University](https://msu.edu), [Department of Biochemistry and Molecular Biology](https://bmb.natsci.msu.edu)
